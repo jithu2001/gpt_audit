@@ -9,8 +9,8 @@ import 'services/project_service.dart';
 import 'models/project.dart';
 
 class HomeDashboard extends StatefulWidget {
-  final VoidCallback? onSignOut;
-  
+  final Future<void> Function()? onSignOut;
+
   const HomeDashboard({super.key, this.onSignOut});
 
   @override

@@ -268,6 +268,33 @@ class ProjectService {
     }
   }
 
+  Future<bool> deleteProject(int projectId) async {
+    try {
+      print('🗑️ Deleting project $projectId');
+
+      final headers = await AuthService.instance.getAuthHeaders();
+      final response = await http.delete(
+        Uri.parse('$_baseUrl$_projectsEndpoint/$projectId'),
+        headers: headers,
+      );
+
+      print('📡 Delete response status: ${response.statusCode}');
+      print('📄 Delete response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        print('✅ Project deleted successfully');
+        return true;
+      } else {
+        print('❌ Failed to delete project: ${response.statusCode}');
+        print('📄 Response body: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('💥 Error deleting project: $e');
+      return false;
+    }
+  }
+
   // Test method to debug API calls
   Future<void> testApiCall() async {
     try {

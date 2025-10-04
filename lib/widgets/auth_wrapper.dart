@@ -28,10 +28,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
     });
   }
 
-  void _onAuthStateChanged() {
-    setState(() {
-      _isAuthenticated = AuthService.instance.isAuthenticated;
-    });
+  Future<void> _onAuthStateChanged() async {
+    // Add a small delay to ensure sign-out has completed
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (mounted) {
+      setState(() {
+        _isAuthenticated = AuthService.instance.isAuthenticated;
+      });
+    }
   }
 
   @override

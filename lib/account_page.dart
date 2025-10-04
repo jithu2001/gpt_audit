@@ -5,7 +5,7 @@ import 'models/user.dart';
 import 'user_management_page.dart';
 
 class AccountPage extends StatefulWidget {
-  final VoidCallback? onSignOut;
+  final Future<void> Function()? onSignOut;
 
   const AccountPage({super.key, this.onSignOut});
 
@@ -122,18 +122,44 @@ class _AccountPageState extends State<AccountPage> {
   }
 
   Future<void> _signOut() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sign Out'),
+        content: const Text('Are you sure you want to sign out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     try {
       await AuthService.instance.signOut();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Signed out successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
         // Notify parent widget about sign out
-        widget.onSignOut?.call();
+        await widget.onSignOut?.call();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Signed out successfully'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 1),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

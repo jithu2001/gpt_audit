@@ -7,6 +7,7 @@ import 'add_specification_page.dart';
 import 'models/project.dart';
 import 'services/project_service.dart';
 import 'services/rfi_service.dart';
+import 'services/auth_service.dart';
 
 class ProjectDetailsPage extends StatefulWidget {
   final Project? project;
@@ -144,6 +145,11 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
               );
             },
           ),
+          if (AuthService.instance.currentUser?.isAdmin ?? false)
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: () => _confirmDeleteProject(_project!),
+            ),
         ],
       ),
       body: _buildProjectDetails(_project!),
@@ -1139,5 +1145,129 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDeleteProject(Project project) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Project'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Are you sure you want to delete this project?'),
+            const SizedBox(height: 12),
+            Text(
+              project.projectName,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.withOpacity(0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.warning, color: Colors.red, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This action cannot be undone.',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && project.id != null) {
+      await _deleteProject(project.id!);
+    }
+  }
+
+  Future<void> _deleteProject(int projectId) async {
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final success = await ProjectService.instance.deleteProject(projectId);
+
+      // Hide loading indicator
+      Navigator.pop(context);
+
+      if (success) {
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Project deleted successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Navigate back to project list or home
+          Navigator.pop(context, true);
+        }
+      } else {
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to delete project'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Hide loading indicator if still showing
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      print('💥 Error deleting project: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

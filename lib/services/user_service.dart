@@ -131,6 +131,13 @@ class UserService {
       print('🔄 Changing password for current user');
 
       final headers = await AuthService.instance.getAuthHeaders();
+      // print('📤 Sending to: $_baseUrl$_usersEndpoint/change-password');
+      // print('📋 Request body: ${jsonEncode({
+      //     'current_password': currentPassword,
+      //     'new_password': newPassword,
+      //     'confirm_password': confirmPassword,
+      //   })}');
+
       final response = await http.patch(
         Uri.parse('$_baseUrl$_usersEndpoint/change-password'),
         headers: headers,
