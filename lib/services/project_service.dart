@@ -4,7 +4,7 @@ import '../models/project.dart';
 import 'auth_service.dart';
 
 class ProjectService {
-  static const String _baseUrl = 'http://192.168.1.105:8080';
+  static const String _baseUrl = 'http://192.168.1.109:8080';
   static const String _projectsEndpoint = '/api/projects';
   
   static ProjectService? _instance;
@@ -234,6 +234,37 @@ class ProjectService {
     } catch (e) {
       print('💥 Error loading specifications: $e');
       return [];
+    }
+  }
+
+  Future<Specification?> addSpecification(int projectId, Specification specification) async {
+    try {
+      print('🚀 Adding specification to project $projectId');
+      print('📤 Sending to: $_baseUrl$_projectsEndpoint/$projectId/specifications');
+      print('📋 Specification data: ${specification.toJson()}');
+
+      final headers = await AuthService.instance.getAuthHeaders();
+      final response = await http.post(
+        Uri.parse('$_baseUrl$_projectsEndpoint/$projectId/specifications'),
+        headers: headers,
+        body: jsonEncode(specification.toJson()),
+      );
+
+      print('📡 Add specification response status: ${response.statusCode}');
+      print('📄 Add specification response body: ${response.body}');
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final createdSpec = Specification.fromJson(jsonDecode(response.body));
+        print('✅ Specification added successfully');
+        return createdSpec;
+      } else {
+        print('❌ Failed to add specification: ${response.statusCode}');
+        print('📄 Response body: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('💥 Error adding specification: $e');
+      return null;
     }
   }
 

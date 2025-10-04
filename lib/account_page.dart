@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../services/auth_service.dart';
-import '../models/user.dart';
+import 'services/auth_service.dart';
+import 'services/user_service.dart';
+import 'models/user.dart';
+import 'user_management_page.dart';
 
 class AccountPage extends StatefulWidget {
   final VoidCallback? onSignOut;
-  
+
   const AccountPage({super.key, this.onSignOut});
 
   @override
@@ -13,10 +14,7 @@ class AccountPage extends StatefulWidget {
 }
 
 class _AccountPageState extends State<AccountPage> {
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  bool _isEditing = false;
-  bool _isLoading = false;
+  User? _currentUser;
 
   @override
   void initState() {
@@ -24,64 +22,103 @@ class _AccountPageState extends State<AccountPage> {
     _loadUserData();
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    super.dispose();
-  }
-
   void _loadUserData() {
-    final user = AuthService.instance.currentUser;
-    if (user != null) {
-      _nameController.text = user.fullName;
-      _emailController.text = user.email;
-    }
+    setState(() {
+      _currentUser = AuthService.instance.currentUser;
+    });
   }
 
-  Future<void> _updateProfile() async {
-    if (!_isEditing) {
-      setState(() {
-        _isEditing = true;
-      });
-      return;
-    }
+  Future<void> _changePassword() async {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final user = AuthService.instance.currentUser;
-      if (user == null) return;
-
-      // For now, we'll disable profile updates since we're using API authentication
-      // You can implement profile update API endpoints later if needed
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile updates are not available with API authentication. Please contact your administrator.'),
-          backgroundColor: Colors.orange,
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Change Password'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: currentPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Current Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: newPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'New Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: confirmPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Confirm New Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
         ),
-      );
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              if (newPasswordController.text != confirmPasswordController.text) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Passwords do not match'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
 
-      setState(() {
-        _isEditing = false;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+              Navigator.pop(context, true);
+            },
+            child: const Text('Change Password'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      final success = await UserService.instance.changePassword(
+        currentPassword: currentPasswordController.text,
+        newPassword: newPasswordController.text,
+        confirmPassword: confirmPasswordController.text,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating profile: $e'),
-            backgroundColor: Colors.red,
+            content: Text(
+              success
+                  ? 'Password changed successfully'
+                  : 'Failed to change password. Please check your current password.',
+            ),
+            backgroundColor: success ? Colors.green : Colors.red,
           ),
         );
       }
     }
+
+    currentPasswordController.dispose();
+    newPasswordController.dispose();
+    confirmPasswordController.dispose();
   }
 
   Future<void> _signOut() async {
@@ -94,14 +131,17 @@ class _AccountPageState extends State<AccountPage> {
             backgroundColor: Colors.green,
           ),
         );
-        
+
         // Notify parent widget about sign out
         widget.onSignOut?.call();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sign out failed: $e')),
+          SnackBar(
+            content: Text('Error signing out: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -109,153 +149,195 @@ class _AccountPageState extends State<AccountPage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = AuthService.instance.currentUser;
-    
+    if (_currentUser == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Account'),
+          backgroundColor: Theme.of(context).primaryColor,
+          foregroundColor: Colors.white,
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Account'),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _updateProfile,
-            child: Text(
-              _isEditing ? 'Save' : 'Edit',
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Profile Header
+            // User Info Card
             Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Theme.of(context).primaryColor,
-                      child: Text(
-                        (user?.fullName?.substring(0, 1).toUpperCase() ?? 
-                         user?.email?.substring(0, 1).toUpperCase() ?? 'U'),
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Theme.of(context).primaryColor,
+                          child: Text(
+                            _currentUser!.fullName.isNotEmpty
+                                ? _currentUser!.fullName[0].toUpperCase()
+                                : 'U',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      user?.fullName ?? 'User',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      user?.email ?? '',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey[600],
-                      ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _currentUser!.fullName,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _currentUser!.email,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _currentUser!.isAdmin
+                                          ? Colors.purple[100]
+                                          : Colors.blue[100],
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      _currentUser!.role.toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: _currentUser!.isAdmin
+                                            ? Colors.purple[900]
+                                            : Colors.blue[900],
+                                      ),
+                                    ),
+                                  ),
+                                  if (_currentUser!.status != null) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: _currentUser!.isActive
+                                            ? Colors.green[100]
+                                            : Colors.red[100],
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        _currentUser!.status!.toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: _currentUser!.isActive
+                                              ? Colors.green[900]
+                                              : Colors.red[900],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
-            // Profile Information
-            const Text(
-              'Profile Information',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Display Name',
-                        prefixIcon: const Icon(Icons.person),
-                        border: const OutlineInputBorder(),
-                        enabled: _isEditing,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: const Icon(Icons.email),
-                        border: const OutlineInputBorder(),
-                        enabled: _isEditing,
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                  ],
+
+            // Admin Section
+            if (_currentUser!.isAdmin) ...[
+              const Text(
+                'Admin Actions',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-            
-            const SizedBox(height: 24),
-            
-            // Account Statistics
-            const Text(
-              'Account Statistics',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+              const SizedBox(height: 12),
+              Card(
+                elevation: 1,
+                child: ListTile(
+                  leading: const Icon(Icons.people, color: Colors.purple),
+                  title: const Text('Manage Users'),
+                  subtitle: const Text('Create, activate, or disable user accounts'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const UserManagementPage(),
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            _buildStatisticsCard(),
-            
-            const SizedBox(height: 24),
-            
-            // Account Actions
+              const SizedBox(height: 24),
+            ],
+
+            // Account Actions (for all users)
             const Text(
               'Account Actions',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
-            const SizedBox(height: 16),
-            
+            const SizedBox(height: 12),
             Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 1,
               child: Column(
                 children: [
                   ListTile(
+                    leading: const Icon(Icons.lock, color: Colors.orange),
+                    title: const Text('Change Password'),
+                    subtitle: const Text('Update your account password'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: _changePassword,
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
                     leading: const Icon(Icons.logout, color: Colors.red),
                     title: const Text('Sign Out'),
+                    subtitle: const Text('Sign out from your account'),
+                    trailing: const Icon(Icons.chevron_right),
                     onTap: _signOut,
                   ),
                 ],
@@ -264,100 +346,6 @@ class _AccountPageState extends State<AccountPage> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildStatisticsCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('projects')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                
-                final projects = snapshot.data?.docs ?? [];
-                final totalProjects = projects.length;
-                final activeProjects = projects.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  return data['status'] == 'active';
-                }).length;
-                final completedProjects = projects.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  return data['status'] == 'completed';
-                }).length;
-                
-                return Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildStatItem(
-                            'Total Projects',
-                            totalProjects.toString(),
-                            Icons.work,
-                            Colors.blue,
-                          ),
-                        ),
-                        Expanded(
-                          child: _buildStatItem(
-                            'Active',
-                            activeProjects.toString(),
-                            Icons.play_circle,
-                            Colors.orange,
-                          ),
-                        ),
-                        Expanded(
-                          child: _buildStatItem(
-                            'Completed',
-                            completedProjects.toString(),
-                            Icons.check_circle,
-                            Colors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
-    return Column(
-      children: [
-        Icon(icon, color: color, size: 32),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[600],
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
     );
   }
 }

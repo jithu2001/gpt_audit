@@ -1,9 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// TODO: Replace Firebase imports with API calls
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'logging.dart';
 import 'specifications_flow.dart';
 import 'home_dashboard.dart';
@@ -66,43 +67,44 @@ class _AddProjectPageState extends State<AddProjectPage> {
     });
   }
 
+  // TODO: Replace with API call for uploading attachments
   Future<void> _uploadAttachments(String projectId) async {
-    if (_attachments.isEmpty) return;
+    // if (_attachments.isEmpty) return;
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    // final user = FirebaseAuth.instance.currentUser;
+    // if (user == null) return;
 
-    final storage = FirebaseStorage.instance;
-    final List<Map<String, dynamic>> uploadedFiles = [];
+    // final storage = FirebaseStorage.instance;
+    // final List<Map<String, dynamic>> uploadedFiles = [];
 
-    for (var attachment in _attachments) {
-      try {
-        final file = File(attachment['path']);
-        final fileName = '${DateTime.now().millisecondsSinceEpoch}_${attachment['name']}';
-        final ref = storage.ref('attachments/$projectId/$fileName');
-        
-        await ref.putFile(file);
-        final url = await ref.getDownloadURL();
-        
-        uploadedFiles.add({
-          'filename': attachment['name'],
-          'size': attachment['size'],
-          'url': url,
-          'type': attachment['type'],
-        });
-      } catch (e) {
-        print('Error uploading file ${attachment['name']}: $e');
-      }
-    }
+    // for (var attachment in _attachments) {
+    //   try {
+    //     final file = File(attachment['path']);
+    //     final fileName = '${DateTime.now().millisecondsSinceEpoch}_${attachment['name']}';
+    //     final ref = storage.ref('attachments/$projectId/$fileName');
+    //
+    //     await ref.putFile(file);
+    //     final url = await ref.getDownloadURL();
+    //
+    //     uploadedFiles.add({
+    //       'filename': attachment['name'],
+    //       'size': attachment['size'],
+    //       'url': url,
+    //       'type': attachment['type'],
+    //     });
+    //   } catch (e) {
+    //     print('Error uploading file ${attachment['name']}: $e');
+    //   }
+    // }
 
-    if (uploadedFiles.isNotEmpty) {
-      await const AuditLogger().writeLog(
-        projectId: projectId,
-        action: 'upload_attachments',
-        summary: '${uploadedFiles.length} attachment(s) uploaded',
-        attachments: {'files': uploadedFiles},
-      );
-    }
+    // if (uploadedFiles.isNotEmpty) {
+    //   await const AuditLogger().writeLog(
+    //     projectId: projectId,
+    //     action: 'upload_attachments',
+    //     summary: '${uploadedFiles.length} attachment(s) uploaded',
+    //     attachments: {'files': uploadedFiles},
+    //   );
+    // }
   }
 
   @override
@@ -203,34 +205,35 @@ class _AddProjectPageState extends State<AddProjectPage> {
     return '${(size / (1024 * 1024)).toStringAsFixed(1)}MB';
   }
 
+  // TODO: Replace with API call for testing write access
   Future<void> _testFirestoreWrite() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User not logged in. Please log in to test Firestore write.')),
-      );
-      return;
-    }
+    // final user = FirebaseAuth.instance.currentUser;
+    // if (user == null) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text('User not logged in. Please log in to test Firestore write.')),
+    //   );
+    //   return;
+    // }
 
-    final now = DateTime.now().toIso8601String();
-    final testData = {
-      'test_field': 'This is a test document',
-      'created_by': user.email,
-      'created_at': now,
-      'updated_by': user.email,
-      'updated_at': now,
-    };
+    // final now = DateTime.now().toIso8601String();
+    // final testData = {
+    //   'test_field': 'This is a test document',
+    //   'created_by': user.email,
+    //   'created_at': now,
+    //   'updated_by': user.email,
+    //   'updated_at': now,
+    // };
 
-    try {
-      final docRef = FirebaseFirestore.instance.collection('test_collection').doc('test_document');
-      await docRef.set(testData);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Firestore write test successful! Document created/updated.')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Firestore write test failed: $e')),
-      );
-    }
+    // try {
+    //   final docRef = FirebaseFirestore.instance.collection('test_collection').doc('test_document');
+    //   await docRef.set(testData);
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text('Firestore write test successful! Document created/updated.')),
+    //   );
+    // } catch (e) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(content: Text('Firestore write test failed: $e')),
+    //   );
+    // }
   }
 }

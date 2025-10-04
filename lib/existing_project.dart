@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// TODO: Replace Firebase imports with API calls
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
 import 'edit_project_page.dart';
 import 'project_details.dart';
+import 'services/auth_service.dart';
 
 class ProjectListPage extends StatefulWidget {
   const ProjectListPage({super.key});
@@ -14,9 +16,12 @@ class ProjectListPage extends StatefulWidget {
 
 class _ProjectListPageState extends State<ProjectListPage> with AutomaticKeepAliveClientMixin {
   bool _isLoading = false;
-  List<QueryDocumentSnapshot<Map<String, dynamic>>> _projects = [];
+  // TODO: Replace QueryDocumentSnapshot with API model
+  // List<QueryDocumentSnapshot<Map<String, dynamic>>> _projects = [];
+  List<Map<String, dynamic>> _projects = [];
   String? _errorMessage;
-  StreamSubscription<QuerySnapshot>? _projectsSubscription;
+  // TODO: Replace StreamSubscription with API polling or WebSocket
+  // StreamSubscription<QuerySnapshot>? _projectsSubscription;
 
   @override
   bool get wantKeepAlive => true;
@@ -29,7 +34,8 @@ class _ProjectListPageState extends State<ProjectListPage> with AutomaticKeepAli
 
   @override
   void dispose() {
-    _projectsSubscription?.cancel();
+    // TODO: Cancel API subscriptions if any
+    // _projectsSubscription?.cancel();
     super.dispose();
   }
 
@@ -40,6 +46,7 @@ class _ProjectListPageState extends State<ProjectListPage> with AutomaticKeepAli
     _loadProjects();
   }
 
+  // TODO: Replace with API call to load projects
   Future<void> _loadProjects() async {
     if (_isLoading) return; // Prevent multiple simultaneous loads
 
@@ -50,53 +57,68 @@ class _ProjectListPageState extends State<ProjectListPage> with AutomaticKeepAli
 
     try {
       print('Loading projects...');
-      
-      // First, check if user is authenticated
-      final user = FirebaseAuth.instance.currentUser;
+
+      // TODO: Replace Firebase auth with API authentication
+      // // First, check if user is authenticated
+      // final user = FirebaseAuth.instance.currentUser;
+      // if (user == null) {
+      //   throw Exception('User not authenticated');
+      // }
+      final user = AuthService.instance.currentUser;
       if (user == null) {
         throw Exception('User not authenticated');
       }
-      
+
       print('User authenticated: ${user.email}');
 
-      // Cancel any existing subscription
-      await _projectsSubscription?.cancel();
+      // TODO: Replace Firestore stream with API calls
+      // // Cancel any existing subscription
+      // await _projectsSubscription?.cancel();
 
-      // Use StreamBuilder approach but with better error handling
-      // Filter projects by the current user
-      _projectsSubscription = FirebaseFirestore.instance
-          .collection('projects')
-          .where('created_by', isEqualTo: user.email)
-          .orderBy('updated_at', descending: true)
-          .snapshots()
-          .listen(
-        (snapshot) {
-          print('Projects stream updated. Found ${snapshot.docs.length} projects');
-          
-          if (mounted) {
-            setState(() {
-              _projects = snapshot.docs;
-              _isLoading = false;
-            });
-          }
+      // // Use StreamBuilder approach but with better error handling
+      // // Filter projects by the current user
+      // _projectsSubscription = FirebaseFirestore.instance
+      //     .collection('projects')
+      //     .where('created_by', isEqualTo: user.email)
+      //     .orderBy('updated_at', descending: true)
+      //     .snapshots()
+      //     .listen(
+      //   (snapshot) {
+      //     print('Projects stream updated. Found ${snapshot.docs.length} projects');
+      //
+      //     if (mounted) {
+      //       setState(() {
+      //         _projects = snapshot.docs;
+      //         _isLoading = false;
+      //       });
+      //     }
 
-          // Debug: Print project details
-          for (var i = 0; i < snapshot.docs.length; i++) {
-            final doc = snapshot.docs[i];
-            final data = doc.data() as Map<String, dynamic>?;
-            print('Project $i: ID=${doc.id}, Company=${data?['company_name']}, Updated=${data?['updated_at']}');
-          }
-        },
-        onError: (error) {
-          print('Error in projects stream: $error');
-          if (mounted) {
-            setState(() {
-              _errorMessage = error.toString();
-              _isLoading = false;
-            });
-          }
-        },
-      );
+      //     // Debug: Print project details
+      //     for (var i = 0; i < snapshot.docs.length; i++) {
+      //       final doc = snapshot.docs[i];
+      //       final data = doc.data() as Map<String, dynamic>?;
+      //       print('Project $i: ID=${doc.id}, Company=${data?['company_name']}, Updated=${data?['updated_at']}');
+      //     }
+      //   },
+      //   onError: (error) {
+      //     print('Error in projects stream: $error');
+      //     if (mounted) {
+      //       setState(() {
+      //         _errorMessage = error.toString();
+      //         _isLoading = false;
+      //       });
+      //     }
+      //   },
+      // );
+
+      // Temporary placeholder
+      if (mounted) {
+        setState(() {
+          _projects = [];
+          _isLoading = false;
+          _errorMessage = 'API integration needed for loading projects';
+        });
+      }
 
     } catch (e) {
       print('Error setting up projects stream: $e');
@@ -127,11 +149,12 @@ class _ProjectListPageState extends State<ProjectListPage> with AutomaticKeepAli
             onPressed: _manualRefresh,
             tooltip: 'Refresh',
           ),
-          IconButton(
-            icon: const Icon(Icons.bug_report),
-            onPressed: _testFirestoreAccess,
-            tooltip: 'Test Firestore',
-          ),
+          // TODO: Remove Firestore test button or replace with API test
+          // IconButton(
+          //   icon: const Icon(Icons.bug_report),
+          //   onPressed: _testFirestoreAccess,
+          //   tooltip: 'Test Firestore',
+          // ),
         ],
       ),
       body: _buildBody(),
@@ -174,11 +197,12 @@ class _ProjectListPageState extends State<ProjectListPage> with AutomaticKeepAli
               onPressed: _manualRefresh,
               child: const Text('Retry'),
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _testFirestoreAccess,
-              child: const Text('Test Firestore Access'),
-            ),
+            // TODO: Replace with API test button
+            // const SizedBox(height: 16),
+            // ElevatedButton(
+            //   onPressed: _testFirestoreAccess,
+            //   child: const Text('Test Firestore Access'),
+            // ),
           ],
         ),
       );
@@ -210,11 +234,12 @@ class _ProjectListPageState extends State<ProjectListPage> with AutomaticKeepAli
               onPressed: _manualRefresh,
               child: const Text('Refresh'),
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _testFirestoreAccess,
-              child: const Text('Test Firestore Access'),
-            ),
+            // TODO: Replace with API test button
+            // const SizedBox(height: 16),
+            // ElevatedButton(
+            //   onPressed: _testFirestoreAccess,
+            //   child: const Text('Test Firestore Access'),
+            // ),
           ],
         ),
       );
@@ -261,8 +286,10 @@ class _ProjectListPageState extends State<ProjectListPage> with AutomaticKeepAli
               padding: const EdgeInsets.all(16),
               itemCount: _projects.length,
               itemBuilder: (context, index) {
-                final doc = _projects[index];
-                final data = doc.data() as Map<String, dynamic>?;
+                // TODO: Replace with API model
+                // final doc = _projects[index];
+                // final data = doc.data() as Map<String, dynamic>?;
+                final data = _projects[index];
                 if (data == null) return const SizedBox.shrink();
                 
                 // Format timestamp for display
@@ -302,8 +329,9 @@ class _ProjectListPageState extends State<ProjectListPage> with AutomaticKeepAli
                               ),
                             ),
                             // Debug: Show project ID
+                            // TODO: Update to use API model ID
                             Text(
-                              'ID: ${doc.id.substring(0, 8)}...',
+                              'ID: ${data['id']?.toString().substring(0, 8) ?? 'unknown'}...',
                               style: TextStyle(
                                 fontSize: 10,
                                 color: Colors.grey.shade500,
@@ -383,14 +411,18 @@ class _ProjectListPageState extends State<ProjectListPage> with AutomaticKeepAli
                             Expanded(
                               child: OutlinedButton.icon(
                                 onPressed: () async {
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => ProjectDetailsPage(projectId: doc.id),
-                                    ),
-                                  );
-                                  // Refresh after returning from project details
-                                  _manualRefresh();
+                                  // TODO: Update to use API model ID
+                                  final projectId = data['id']?.toString();
+                                  if (projectId != null) {
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ProjectDetailsPage(projectId: projectId),
+                                      ),
+                                    );
+                                    // Refresh after returning from project details
+                                    _manualRefresh();
+                                  }
                                 },
                                 icon: const Icon(Icons.visibility),
                                 label: const Text('View'),
@@ -403,14 +435,18 @@ class _ProjectListPageState extends State<ProjectListPage> with AutomaticKeepAli
                             Expanded(
                               child: FilledButton.icon(
                                 onPressed: () async {
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => EditProjectPage(projectId: doc.id, data: data),
-                                    ),
-                                  );
-                                  // Refresh after returning from edit
-                                  _manualRefresh();
+                                  // TODO: Update to use API model ID
+                                  final projectId = data['id']?.toString();
+                                  if (projectId != null) {
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => EditProjectPage(projectId: projectId),
+                                      ),
+                                    );
+                                    // Refresh after returning from edit
+                                    _manualRefresh();
+                                  }
                                 },
                                 icon: const Icon(Icons.edit),
                                 label: const Text('Edit'),
@@ -433,53 +469,54 @@ class _ProjectListPageState extends State<ProjectListPage> with AutomaticKeepAli
     );
   }
 
-  Future<void> _testFirestoreAccess() async {
-    try {
-      // Test 1: Try to read from projects collection
-      print('Testing Firestore read access...');
-      final projectsSnapshot = await FirebaseFirestore.instance
-          .collection('projects')
-          .limit(1)
-          .get();
-      
-      print('Read test result: ${projectsSnapshot.docs.length} documents found');
-      
-      // Test 2: Try to write a test document
-      print('Testing Firestore write access...');
-      final testDoc = await FirebaseFirestore.instance
-          .collection('test_access')
-          .add({
-        'test': true,
-        'timestamp': DateTime.now().toIso8601String(),
-        'user': 'test_user',
-      });
-      
-      print('Write test result: Document created with ID: ${testDoc.id}');
-      
-      // Test 3: Try to delete the test document
-      await testDoc.delete();
-      print('Delete test result: Test document deleted successfully');
-      
-      // Show success message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Firestore access test successful! Check console for details.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-      
-    } catch (e) {
-      print('Firestore access test failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Firestore access test failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
+  // TODO: Replace with API test or remove
+  // Future<void> _testFirestoreAccess() async {
+  //   try {
+  //     // Test 1: Try to read from projects collection
+  //     print('Testing Firestore read access...');
+  //     final projectsSnapshot = await FirebaseFirestore.instance
+  //         .collection('projects')
+  //         .limit(1)
+  //         .get();
+  //
+  //     print('Read test result: ${projectsSnapshot.docs.length} documents found');
+  //
+  //     // Test 2: Try to write a test document
+  //     print('Testing Firestore write access...');
+  //     final testDoc = await FirebaseFirestore.instance
+  //         .collection('test_access')
+  //         .add({
+  //       'test': true,
+  //       'timestamp': DateTime.now().toIso8601String(),
+  //       'user': 'test_user',
+  //     });
+  //
+  //     print('Write test result: Document created with ID: ${testDoc.id}');
+  //
+  //     // Test 3: Try to delete the test document
+  //     await testDoc.delete();
+  //     print('Delete test result: Test document deleted successfully');
+  //
+  //     // Show success message
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(
+  //           content: Text('Firestore access test successful! Check console for details.'),
+  //           backgroundColor: Colors.green,
+  //         ),
+  //       );
+  //     }
+  //
+  //   } catch (e) {
+  //     print('Firestore access test failed: $e');
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text('Firestore access test failed: $e'),
+  //           backgroundColor: Colors.red,
+  //         ),
+  //       );
+  //     }
+  //   }
+  // }
 }

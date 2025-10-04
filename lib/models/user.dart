@@ -3,13 +3,18 @@ class User {
   final String email;
   final String fullName;
   final String role;
+  final String? status;
 
   User({
     required this.userId,
     required this.email,
     required this.fullName,
     required this.role,
+    this.status,
   });
+
+  bool get isAdmin => role.toLowerCase() == 'admin';
+  bool get isActive => status?.toLowerCase() == 'active';
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
@@ -17,6 +22,7 @@ class User {
       email: json['email'] ?? '',
       fullName: json['full_name'] ?? '',
       role: json['role'] ?? '',
+      status: json['account_status'] ?? json['status'],
     );
   }
 
@@ -26,11 +32,12 @@ class User {
       'email': email,
       'full_name': fullName,
       'role': role,
+      'status': status,
     };
   }
 
   @override
   String toString() {
-    return 'User(userId: $userId, email: $email, fullName: $fullName, role: $role)';
+    return 'User(userId: $userId, email: $email, fullName: $fullName, role: $role, status: $status)';
   }
 }

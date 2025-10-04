@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+// TODO: Replace Firebase imports with API calls
+// import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'logging.dart';
@@ -59,20 +60,29 @@ class _EditProjectPageState extends State<EditProjectPage> {
     super.dispose();
   }
 
+  // TODO: Replace with API call to load project data
   Future<void> _loadProjectData() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('projects')
-          .doc(widget.projectId)
-          .get();
-      
-      if (doc.exists) {
-        _projectData = doc.data() as Map<String, dynamic>;
-        _populateForm();
+      // TODO: Replace Firestore call with API call
+      // final doc = await FirebaseFirestore.instance
+      //     .collection('projects')
+      //     .doc(widget.projectId)
+      //     .get();
+      //
+      // if (doc.exists) {
+      //   _projectData = doc.data() as Map<String, dynamic>;
+      //   _populateForm();
+      // }
+
+      // Temporary placeholder
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Project loading not implemented - API call needed')),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -502,76 +512,79 @@ class _EditProjectPageState extends State<EditProjectPage> {
     }
   }
 
+  // TODO: Replace with API call to save/update project
   Future<void> _saveProject() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() {
       _isSaving = true;
     });
-    
+
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-      
+      // TODO: Replace Firebase auth with API authentication
+      // final user = FirebaseAuth.instance.currentUser;
+      // if (user == null) return;
+
       // Upload new images
       await _uploadImages();
-      
-      // Prepare update data
-      final now = DateTime.now().toIso8601String();
-      final updateData = {
-        'type': _projectData!['type'],
-        'updated_by': user.email,
-        'updated_at': now,
-        'special_requirements': _specialRequirementsController.text.trim(),
-      };
-      
-      // Add specifications if windows
-      if (_projectData!['type'] == 'windows') {
-        updateData.addAll({
-          'color': _colorController.text.trim(),
-          'ironmongery': _ironmongeryController.text.trim(),
-          'u_value': _uValueController.text.trim(),
-          'g_value': _gValueController.text.trim(),
-          'vents': _ventsController.text.trim(),
-          'acoustics': _acousticsController.text.trim(),
-          'sbd': _sbdController.text.trim(),
-          'pas24': _pas24Controller.text.trim(),
-          'restrictors': _restrictorsController.text.trim(),
-        });
-      }
-      
-      // Add new image URLs
-      updateData.addAll(_imageUrls);
-      
-      // Update project
-      await FirebaseFirestore.instance
-          .collection('projects')
-          .doc(widget.projectId)
-          .update(updateData);
-      
-      // Log the update
-      await const AuditLogger().writeLog(
-        projectId: widget.projectId,
-        action: 'update',
-        summary: 'Project specifications updated',
-      );
-      
+
+      // TODO: Replace Firestore update with API call
+      // // Prepare update data
+      // final now = DateTime.now().toIso8601String();
+      // final updateData = {
+      //   'type': _projectData!['type'],
+      //   'updated_by': user.email,
+      //   'updated_at': now,
+      //   'special_requirements': _specialRequirementsController.text.trim(),
+      // };
+      //
+      // // Add specifications if windows
+      // if (_projectData!['type'] == 'windows') {
+      //   updateData.addAll({
+      //     'color': _colorController.text.trim(),
+      //     'ironmongery': _ironmongeryController.text.trim(),
+      //     'u_value': _uValueController.text.trim(),
+      //     'g_value': _gValueController.text.trim(),
+      //     'vents': _ventsController.text.trim(),
+      //     'acoustics': _acousticsController.text.trim(),
+      //     'sbd': _sbdController.text.trim(),
+      //     'pas24': _pas24Controller.text.trim(),
+      //     'restrictors': _restrictorsController.text.trim(),
+      //   });
+      // }
+      //
+      // // Add new image URLs
+      // updateData.addAll(_imageUrls);
+      //
+      // // Update project
+      // await FirebaseFirestore.instance
+      //     .collection('projects')
+      //     .doc(widget.projectId)
+      //     .update(updateData);
+      //
+      // // Log the update
+      // await const AuditLogger().writeLog(
+      //   projectId: widget.projectId,
+      //   action: 'update',
+      //   summary: 'Project specifications updated',
+      // );
+
       if (!mounted) return;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Project updated successfully'),
-          backgroundColor: Colors.green,
+          content: Text('Project update not implemented - API call needed'),
+          backgroundColor: Colors.orange,
         ),
       );
-      
+
       Navigator.pop(context);
-      
+
     } catch (e) {
       setState(() {
         _isSaving = false;
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -583,26 +596,30 @@ class _EditProjectPageState extends State<EditProjectPage> {
     }
   }
 
+  // TODO: Replace with API call to upload images
   Future<void> _uploadImages() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    
-    final storage = FirebaseStorage.instance;
-    
-    for (var entry in _images.entries) {
-      if (entry.value != null) {
-        try {
-          final fileName = '${DateTime.now().millisecondsSinceEpoch}_${entry.key}.jpg';
-          final ref = storage.ref('specifications/${user.uid}/$fileName');
-          
-          await ref.putFile(entry.value!);
-          final url = await ref.getDownloadURL();
-          
-          _imageUrls[entry.key] = url;
-        } catch (e) {
-          print('Error uploading image for ${entry.key}: $e');
-        }
-      }
-    }
+    // final user = FirebaseAuth.instance.currentUser;
+    // if (user == null) return;
+    //
+    // final storage = FirebaseStorage.instance;
+    //
+    // for (var entry in _images.entries) {
+    //   if (entry.value != null) {
+    //     try {
+    //       final fileName = '${DateTime.now().millisecondsSinceEpoch}_${entry.key}.jpg';
+    //       final ref = storage.ref('specifications/${user.uid}/$fileName');
+    //
+    //       await ref.putFile(entry.value!);
+    //       final url = await ref.getDownloadURL();
+    //
+    //       _imageUrls[entry.key] = url;
+    //     } catch (e) {
+    //       print('Error uploading image for ${entry.key}: $e');
+    //     }
+    //   }
+    // }
+
+    // Temporary placeholder - images will be uploaded via API
+    print('TODO: Upload images via API');
   }
 }

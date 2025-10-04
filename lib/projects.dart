@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// TODO: Replace Firebase imports with API calls
+// import 'package:firebase_auth/firebase_auth.dart';
 import 'audit_log_page.dart';
 import 'existing_project.dart';
 import 'add_project.dart';
+import 'services/auth_service.dart';
 
 class ProjectsPage extends StatelessWidget {
   const ProjectsPage({super.key});
 
+  // TODO: Replace with API call for sign out
   Future<void> _signOut(BuildContext context) async {
     try {
-      await FirebaseAuth.instance.signOut();
+      // await FirebaseAuth.instance.signOut();
+      await AuthService.instance.signOut();
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -21,7 +25,9 @@ class ProjectsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+    // TODO: Replace Firebase user with API user
+    // final user = FirebaseAuth.instance.currentUser;
+    final user = AuthService.instance.currentUser;
     
     return Scaffold(
       appBar: AppBar(
@@ -52,7 +58,7 @@ class ProjectsPage extends StatelessWidget {
               child: CircleAvatar(
                 backgroundColor: Colors.white,
                 child: Text(
-                  user?.displayName?.substring(0, 1).toUpperCase() ?? 
+                  user?.fullName?.substring(0, 1).toUpperCase() ??
                   user?.email?.substring(0, 1).toUpperCase() ?? 'U',
                   style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
                 ),
@@ -65,12 +71,12 @@ class ProjectsPage extends StatelessWidget {
         child: ListView(
           children: [
             UserAccountsDrawerHeader(
-              accountName: Text(user?.displayName ?? 'User'),
+              accountName: Text(user?.fullName ?? 'User'),
               accountEmail: Text(user?.email ?? ''),
               currentAccountPicture: CircleAvatar(
                 backgroundColor: Colors.white,
                 child: Text(
-                  user?.displayName?.substring(0, 1).toUpperCase() ?? 
+                  user?.fullName?.substring(0, 1).toUpperCase() ??
                   user?.email?.substring(0, 1).toUpperCase() ?? 'U',
                   style: TextStyle(
                     color: Theme.of(context).primaryColor,

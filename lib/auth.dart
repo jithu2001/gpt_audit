@@ -68,9 +68,6 @@ class _AuthPageState extends State<AuthPage> {
         );
         
         if (success) {
-        // Save FCM token after successful sign in
-        await NotificationService().saveFCMToken();
-          
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(

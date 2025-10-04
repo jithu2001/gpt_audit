@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class RFIService {
-  static const String _baseUrl = 'http://192.168.1.105:8080';
+  static const String _baseUrl = 'http://192.168.1.109:8080';
   static const String _rfiEndpoint = '/api/projects';
 
   static RFIService? _instance;

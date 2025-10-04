@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:convert';
 import 'logging.dart';
-import 'rfi_flow.dart';
 import 'home_dashboard.dart';
 import 'services/project_service.dart';
 import 'models/project.dart';
@@ -37,9 +34,11 @@ class _SpecificationsFlowState extends State<SpecificationsFlow> {
   final _restrictorsController = TextEditingController();
   final _specialRequirementsController = TextEditingController();
   
-  // Image storage
-  Map<String, File?> _images = {};
-  Map<String, String?> _imageUrls = {};
+  // Image storage for specification attachment
+  File? _specificationImage;
+
+  // RFI questions list
+  List<TextEditingController> _rfiControllers = [TextEditingController()];
 
   @override
   void dispose() {
@@ -56,6 +55,9 @@ class _SpecificationsFlowState extends State<SpecificationsFlow> {
     _pas24Controller.dispose();
     _restrictorsController.dispose();
     _specialRequirementsController.dispose();
+    for (var controller in _rfiControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -247,20 +249,148 @@ class _SpecificationsFlowState extends State<SpecificationsFlow> {
                       ],
                       
                       // Special Requirements (always shown)
-                      _buildSpecificationField(
-                        'Special Requirements',
-                        _specialRequirementsController,
-                        Icons.note_add,
-                        isRequired: false,
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _specialRequirementsController,
                         maxLines: 4,
+                        decoration: const InputDecoration(
+                          labelText: 'Special Requirements',
+                          hintText: 'Enter any special requirements or comments',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.note_add),
+                        ),
                       ),
+
+                      // Image Attachment for Specification
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _pickSpecificationImage,
+                              icon: const Icon(Icons.attach_file),
+                              label: Text(_specificationImage == null
+                                  ? 'Attach Specification Image'
+                                  : 'Image Attached'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _specificationImage == null
+                                    ? null
+                                    : Colors.green,
+                              ),
+                            ),
+                          ),
+                          if (_specificationImage != null) ...[
+                            const SizedBox(width: 8),
+                            IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _specificationImage = null;
+                                });
+                              },
+                              icon: const Icon(Icons.close, color: Colors.red),
+                              tooltip: 'Remove image',
+                            ),
+                          ],
+                        ],
+                      ),
+
+                      if (_specificationImage != null) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          height: 150,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(
+                              _specificationImage!,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
+              // RFI Section
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'RFI Questions',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: _addRFIField,
+                            icon: const Icon(Icons.add_circle),
+                            tooltip: 'Add RFI Question',
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Add questions that need clarification from the client',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ...List.generate(_rfiControllers.length, (index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _rfiControllers[index],
+                                  decoration: InputDecoration(
+                                    labelText: 'RFI Question ${index + 1}',
+                                    hintText: 'Enter question text',
+                                    border: const OutlineInputBorder(),
+                                    prefixIcon: const Icon(Icons.help_outline),
+                                  ),
+                                  maxLines: 2,
+                                ),
+                              ),
+                              if (_rfiControllers.length > 1) ...[
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  onPressed: () => _removeRFIField(index),
+                                  icon: const Icon(Icons.remove_circle, color: Colors.red),
+                                  tooltip: 'Remove question',
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
               // Action Buttons
               Row(
                 children: [
@@ -287,7 +417,7 @@ class _SpecificationsFlowState extends State<SpecificationsFlow> {
                               width: 20,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text('Save & Continue to RFI'),
+                          : const Text('Create Project'),
                     ),
                   ),
                 ],
@@ -357,99 +487,39 @@ class _SpecificationsFlowState extends State<SpecificationsFlow> {
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 20, color: Colors.grey[600]),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              if (isRequired) ...[
-                const SizedBox(width: 4),
-                const Text(
-                  '*',
-                  style: TextStyle(color: Colors.red, fontSize: 16),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: controller,
-            maxLines: maxLines,
-            decoration: InputDecoration(
-              hintText: 'Enter $label',
-              border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.add_a_photo),
-                onPressed: () => _pickImage(label),
-                tooltip: 'Add Image',
-              ),
-            ),
-            validator: isRequired ? (value) {
-              if (value?.trim().isEmpty ?? true) {
-                return '$label is required';
-              }
-              return null;
-            } : null,
-          ),
-          if (_images[label] != null) ...[
-            const SizedBox(height: 8),
-            Container(
-              height: 100,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.file(
-                      _images[label]!,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                    ),
-                  ),
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white, size: 16),
-                        onPressed: () {
-                          setState(() {
-                            _images.remove(label);
-                          });
-                        },
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
+      child: TextFormField(
+        controller: controller,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: 'Enter $label',
+          border: const OutlineInputBorder(),
+          prefixIcon: Icon(icon),
+        ),
+        validator: isRequired ? (value) {
+          if (value?.trim().isEmpty ?? true) {
+            return '$label is required';
+          }
+          return null;
+        } : null,
       ),
     );
   }
 
-  Future<void> _pickImage(String field) async {
+  void _addRFIField() {
+    setState(() {
+      _rfiControllers.add(TextEditingController());
+    });
+  }
+
+  void _removeRFIField(int index) {
+    setState(() {
+      _rfiControllers[index].dispose();
+      _rfiControllers.removeAt(index);
+    });
+  }
+
+  Future<void> _pickSpecificationImage() async {
     try {
       // Show dialog to choose between camera and gallery
       final source = await showDialog<ImageSource>(
@@ -473,14 +543,14 @@ class _SpecificationsFlowState extends State<SpecificationsFlow> {
           ),
         ),
       );
-      
+
       if (source != null) {
         final picker = ImagePicker();
         final image = await picker.pickImage(source: source);
-        
+
         if (image != null) {
           setState(() {
-            _images[field] = File(image.path);
+            _specificationImage = File(image.path);
           });
         }
       }
@@ -493,20 +563,75 @@ class _SpecificationsFlowState extends State<SpecificationsFlow> {
     }
   }
 
+  Future<String?> _convertImageToBase64(File? imageFile) async {
+    if (imageFile == null) return null;
+
+    try {
+      final bytes = await imageFile.readAsBytes();
+      return base64Encode(bytes);
+    } catch (e) {
+      print('Error converting image to base64: $e');
+      return null;
+    }
+  }
+
   Future<void> _saveProject() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
-      // Upload images first (still using Firebase Storage for now)
-      await _uploadImages();
-      
-      // Create project using API
+      // Convert image to base64 if present
+      final attachmentBase64 = await _convertImageToBase64(_specificationImage);
+
+      // Collect RFI questions (only non-empty ones)
+      final rfiQuestions = _rfiControllers
+          .where((controller) => controller.text.trim().isNotEmpty)
+          .map((controller) => Rfi(questionText: controller.text.trim()))
+          .toList();
+
+      // Create specification based on project type
+      List<Specification> specifications = [];
+
+      if (_selectedType == 'windows') {
+        // For windows: include all fields
+        specifications.add(Specification(
+          versionNo: 1,
+          colour: _colorController.text.trim(),
+          ironmongery: _ironmongeryController.text.trim(),
+          uValue: double.tryParse(_uValueController.text.trim()) ?? 0.0,
+          gValue: double.tryParse(_gValueController.text.trim()) ?? 0.0,
+          vents: _ventsController.text.trim(),
+          acoustics: _acousticsController.text.trim(),
+          sbd: _sbdController.text.trim(),
+          pas24: _pas24Controller.text.trim(),
+          restrictors: _restrictorsController.text.trim(),
+          specialComments: _specialRequirementsController.text.trim(),
+          attachmentUrl: attachmentBase64,
+        ));
+      } else if (_selectedType == 'doors') {
+        // For doors: only special_comments
+        specifications.add(Specification(
+          versionNo: 1,
+          colour: '',
+          ironmongery: '',
+          uValue: 0.0,
+          gValue: 0.0,
+          vents: '',
+          acoustics: '',
+          sbd: '',
+          pas24: '',
+          restrictors: '',
+          specialComments: _specialRequirementsController.text.trim(),
+          attachmentUrl: attachmentBase64,
+        ));
+      }
+
+      // Create project with specifications and RFIs
       final project = Project(
-        projectName: _projectNameController.text.trim().isNotEmpty 
+        projectName: _projectNameController.text.trim().isNotEmpty
             ? _projectNameController.text.trim()
             : 'New ${_capitalize(_selectedType)} Project',
         companyName: _companyNameController.text.trim().isNotEmpty
@@ -517,68 +642,45 @@ class _SpecificationsFlowState extends State<SpecificationsFlow> {
             : 'Your Address',
         projectType: _selectedType,
         status: 'active',
-        specifications: _selectedType == 'windows' ? [
-          Specification(
-            versionNo: 1,
-            colour: _colorController.text.trim(),
-            ironmongery: _ironmongeryController.text.trim(),
-            uValue: double.tryParse(_uValueController.text.trim()) ?? 0.0,
-            gValue: double.tryParse(_gValueController.text.trim()) ?? 0.0,
-            vents: _ventsController.text.trim(),
-            acoustics: _acousticsController.text.trim(),
-            sbd: _sbdController.text.trim(),
-            pas24: _pas24Controller.text.trim(),
-            restrictors: _restrictorsController.text.trim(),
-            specialComments: _specialRequirementsController.text.trim(),
-            attachmentUrl: _imageUrls['color_image'] ?? '',
-          ),
-        ] : [],
-        rfis: [], // Don't send RFIs when creating project - they're added later
+        specifications: specifications,
+        rfis: rfiQuestions,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
-      
+
       // Save project via API
+      print('📤 Creating project with ${rfiQuestions.length} RFIs');
       final createdProject = await ProjectService.instance.createProject(project);
-      
+
       if (createdProject == null) {
         throw Exception('Failed to create project');
       }
-      
+
       if (!mounted) return;
-      
+
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Project created successfully!'),
           backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
         ),
       );
-      
-      // Navigate to RFI flow
-      if (createdProject.id != null) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => RFIFlow(projectId: createdProject.id.toString()),
-          ),
-        );
-      } else {
-        // If project creation failed, go back to home dashboard
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const HomeDashboard(),
-          ),
-          (route) => false,
-        );
-      }
-      
+
+      // Navigate back to home dashboard
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const HomeDashboard(),
+        ),
+        (route) => false,
+      );
+
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -590,26 +692,4 @@ class _SpecificationsFlowState extends State<SpecificationsFlow> {
     }
   }
 
-  Future<void> _uploadImages() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    
-    final storage = FirebaseStorage.instance;
-    
-    for (var entry in _images.entries) {
-      if (entry.value != null) {
-        try {
-          final fileName = '${DateTime.now().millisecondsSinceEpoch}_${entry.key}.jpg';
-          final ref = storage.ref('specifications/${user.uid}/$fileName');
-          
-          await ref.putFile(entry.value!);
-          final url = await ref.getDownloadURL();
-          
-          _imageUrls[entry.key] = url;
-        } catch (e) {
-          print('Error uploading image for ${entry.key}: $e');
-        }
-      }
-    }
-  }
 }

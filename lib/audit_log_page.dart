@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// TODO: Replace Firebase imports with API calls
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
 import '../models/project.dart';
 import '../services/project_service.dart';
 
@@ -45,40 +46,48 @@ class _AuditLogPageState extends State<AuditLogPage> {
     super.dispose();
   }
 
+  // TODO: Replace with API call to load project names
   Future<void> _loadProjectNames() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final userEmail = user?.email;
-      
-      QuerySnapshot projectsSnapshot;
-      if (userEmail != null) {
-        // Filter projects by current user
-        projectsSnapshot = await FirebaseFirestore.instance
-            .collection('projects')
-            .where('created_by', isEqualTo: userEmail)
-            .orderBy('company_name')
-            .get();
-      } else {
-        // Fallback if user is not authenticated
-        projectsSnapshot = await FirebaseFirestore.instance
-            .collection('projects')
-            .orderBy('company_name')
-            .get();
-      }
-      
-      final names = <String>[];
-      final idToName = <String, String>{};
-      
-      for (var doc in projectsSnapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>?;
-        final companyName = data?['company_name'] ?? 'Unnamed Project';
-        names.add(companyName);
-        idToName[doc.id] = companyName;
-      }
-      
+      // TODO: Replace Firestore calls with API calls
+      // final user = FirebaseAuth.instance.currentUser;
+      // final userEmail = user?.email;
+      //
+      // QuerySnapshot projectsSnapshot;
+      // if (userEmail != null) {
+      //   // Filter projects by current user
+      //   projectsSnapshot = await FirebaseFirestore.instance
+      //       .collection('projects')
+      //       .where('created_by', isEqualTo: userEmail)
+      //       .orderBy('company_name')
+      //       .get();
+      // } else {
+      //   // Fallback if user is not authenticated
+      //   projectsSnapshot = await FirebaseFirestore.instance
+      //       .collection('projects')
+      //       .orderBy('company_name')
+      //       .get();
+      // }
+      //
+      // final names = <String>[];
+      // final idToName = <String, String>{};
+      //
+      // for (var doc in projectsSnapshot.docs) {
+      //   final data = doc.data() as Map<String, dynamic>?;
+      //   final companyName = data?['company_name'] ?? 'Unnamed Project';
+      //   names.add(companyName);
+      //   idToName[doc.id] = companyName;
+      // }
+      //
+      // setState(() {
+      //   _projectNames = names;
+      //   _projectIdToName = idToName;
+      // });
+
+      // Temporary placeholder
       setState(() {
-        _projectNames = names;
-        _projectIdToName = idToName;
+        _projectNames = [];
+        _projectIdToName = {};
       });
     } catch (e) {
       print('Error loading project names: $e');
@@ -396,7 +405,37 @@ class _AuditLogPageState extends State<AuditLogPage> {
           ],
 
           // Audit Logs List
+          // TODO: Replace StreamBuilder with API call
           Expanded(
+            child: Builder(
+              builder: (context) {
+                // Temporary placeholder - showing empty state
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.history,
+                        size: 64,
+                        color: Colors.grey.shade400,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Audit logs not available',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'API integration needed for audit logs',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            /* TODO: Restore when API is ready
             child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: _buildLogsStream(),
               builder: (context, snapshot) {
@@ -629,13 +668,15 @@ class _AuditLogPageState extends State<AuditLogPage> {
                   },
                 );
               },
-            ),
+            ), */
           ),
         ],
       ),
     );
   }
 
+  // TODO: Replace with API call to get audit logs
+  /* Commented out until API is ready
   Stream<QuerySnapshot<Map<String, dynamic>>> _buildLogsStream() {
     final user = FirebaseAuth.instance.currentUser;
     final userEmail = user?.email;
@@ -663,7 +704,7 @@ class _AuditLogPageState extends State<AuditLogPage> {
             .snapshots();
       }
     }
-  }
+  } */
 
   Widget _buildLogDetail(String label, dynamic value) {
     return Column(

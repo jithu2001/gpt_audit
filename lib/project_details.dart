@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
 import 'edit_project_page.dart';
 import 'audit_log_page.dart';
+import 'add_specification_page.dart';
 import 'models/project.dart';
 import 'services/project_service.dart';
 import 'services/rfi_service.dart';
@@ -264,9 +266,9 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
     if (project.specifications.isEmpty) {
       return const SizedBox.shrink();
     }
-    
+
     final spec = project.specifications.first; // Use first specification
-    
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -275,12 +277,38 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Specifications',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Specifications',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Row(
+                  children: [
+                    Text(
+                      'v${spec.versionNo}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () => _addNewSpecification(project),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('New Version'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             _buildSpecificationRow('Color', spec.colour),
@@ -292,10 +320,6 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
             _buildSpecificationRow('SBD', spec.sbd),
             _buildSpecificationRow('PAS24', spec.pas24),
             _buildSpecificationRow('Restrictors', spec.restrictors),
-            if (spec.specialComments.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              _buildSpecificationRow('Special Comments', spec.specialComments),
-            ],
           ],
         ),
       ),
@@ -330,14 +354,16 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
   }
 
   Widget _buildSpecialRequirementsCard(Project project) {
-    final specialComments = project.specifications.isNotEmpty 
-        ? project.specifications.first.specialComments 
+    final specialComments = project.specifications.isNotEmpty
+        ? project.specifications.first.specialComments
         : '';
-    
+
     if (specialComments.isEmpty) {
       return const SizedBox.shrink();
     }
-    
+
+    final spec = project.specifications.first;
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -346,18 +372,88 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Special Requirements',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Flexible(
+                  child: Text(
+                    'Special Requirements',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'v${spec.versionNo}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () => _addNewSpecification(project),
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('New', style: TextStyle(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Text(
               specialComments,
               style: const TextStyle(fontSize: 16),
             ),
+
+            // Attachment Image for Doors
+            if (spec.attachmentUrl != null && spec.attachmentUrl!.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+              const Text(
+                'Attachment',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () => _showImageDialog(spec.attachmentUrl!),
+                child: Container(
+                  height: 200,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: _buildBase64Image(spec.attachmentUrl!),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Tap image to view full size',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -588,7 +684,6 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
               ),
             ),
             const SizedBox(height: 16),
-            _buildInfoRow('Project ID', project.id?.toString() ?? 'N/A'),
             _buildInfoRow('Company', project.companyName),
             _buildInfoRow('Address', project.companyAddress),
             _buildInfoRow('Type', project.projectType),
@@ -693,6 +788,20 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  Future<void> _addNewSpecification(Project project) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddSpecificationPage(project: project),
+      ),
+    );
+
+    // Reload project if specification was added successfully
+    if (result == true) {
+      _loadProject();
     }
   }
 
@@ -950,5 +1059,85 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
         ),
       );
     }
+  }
+
+  Widget _buildBase64Image(String base64String) {
+    try {
+      final bytes = base64Decode(base64String);
+      return Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: Colors.grey[200],
+            child: const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                  SizedBox(height: 8),
+                  Text('Failed to load image'),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      return Container(
+        color: Colors.grey[200],
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.red),
+              SizedBox(height: 8),
+              Text('Invalid image format'),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showImageDialog(String base64String) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: _buildBase64Image(base64String),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 16,
+              right: 16,
+              child: CircleAvatar(
+                backgroundColor: Colors.black87,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
