@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 // TODO: Replace Firebase imports with API calls
 // import 'package:cloud_firestore/cloud_firestore.dart';
 // import 'package:firebase_auth/firebase_auth.dart';
@@ -775,71 +776,138 @@ class _AuditLogPageState extends State<AuditLogPage> {
 
   Widget _buildSpecificationCard(Specification spec) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.article, color: Colors.blue.shade600, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Version ${spec.versionNo}',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade700,
-                  fontSize: 16,
+          // Header with version and metadata
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.article, color: Colors.white, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Version ${spec.versionNo}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const Spacer(),
-              if (spec.attachmentUrl != null)
-                Icon(Icons.attach_file, color: Colors.green.shade600, size: 16),
-            ],
+                if (spec.createdBy != null || spec.createdAt != null) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      if (spec.createdBy != null) ...[
+                        const Icon(Icons.person, color: Colors.white70, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          spec.createdBy!,
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ],
+                      if (spec.createdBy != null && spec.createdAt != null)
+                        const SizedBox(width: 16),
+                      if (spec.createdAt != null) ...[
+                        const Icon(Icons.access_time, color: Colors.white70, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${spec.createdAt!.day}/${spec.createdAt!.month}/${spec.createdAt!.year} ${spec.createdAt!.hour}:${spec.createdAt!.minute.toString().padLeft(2, '0')}',
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          _buildSpecificationDetail('Colour', spec.colour),
-          _buildSpecificationDetail('Ironmongery', spec.ironmongery),
-          _buildSpecificationDetail('U-Value', spec.uValue.toString()),
-          _buildSpecificationDetail('G-Value', spec.gValue.toString()),
-          _buildSpecificationDetail('Vents', spec.vents),
-          _buildSpecificationDetail('Acoustics', spec.acoustics),
-          _buildSpecificationDetail('SBD', spec.sbd),
-          _buildSpecificationDetail('PAS24', spec.pas24),
-          _buildSpecificationDetail('Restrictors', spec.restrictors),
-          if (spec.specialComments.isNotEmpty)
-            _buildSpecificationDetail('Special Comments', spec.specialComments),
-          if (spec.attachmentUrl != null) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Colors.green.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.attach_file, color: Colors.green.shade600, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Attachment: ${spec.attachmentUrl!.split('/').last}',
-                      style: TextStyle(
-                        color: Colors.green.shade700,
-                        fontSize: 12,
+
+          // Specification details
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSpecificationDetailWithAttachment('Colour', spec.colour, spec.colourAttachment),
+                _buildSpecificationDetailWithAttachment('Ironmongery', spec.ironmongery, spec.ironmongeryAttachment),
+                _buildSpecificationDetailWithAttachment('U-Value', spec.uValue, spec.uValueAttachment),
+                _buildSpecificationDetailWithAttachment('G-Value', spec.gValue, spec.gValueAttachment),
+                _buildSpecificationDetailWithAttachment('Vents', spec.vents, spec.ventsAttachment),
+                _buildSpecificationDetailWithAttachment('Acoustics', spec.acoustics, spec.acousticsAttachment),
+                _buildSpecificationDetailWithAttachment('SBD', spec.sbd, spec.sbdAttachment),
+                _buildSpecificationDetailWithAttachment('PAS24', spec.pas24, spec.pas24Attachment),
+                _buildSpecificationDetailWithAttachment('Restrictors', spec.restrictors, spec.restrictorsAttachment),
+                if (spec.specialComments.isNotEmpty)
+                  _buildSpecificationDetail('Special Comments', spec.specialComments),
+
+                // Main attachment
+                if (spec.attachmentUrl != null && spec.attachmentUrl!.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: () => _showImageDialog(spec.attachmentUrl!),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6366F1).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF6366F1)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF6366F1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Icon(Icons.image, color: Colors.white, size: 18),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'Specification Attachment',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1F2937),
+                              ),
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios, color: Color(0xFF6366F1), size: 14),
+                        ],
                       ),
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -876,5 +944,130 @@ class _AuditLogPageState extends State<AuditLogPage> {
         ],
       ),
     );
+  }
+
+  Widget _buildSpecificationDetailWithAttachment(String label, String value, String? attachment) {
+    if (value.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: Colors.grey.shade800,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          if (attachment != null && attachment.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.image, color: Color(0xFF6366F1), size: 18),
+              onPressed: () => _showImageDialog(attachment),
+              tooltip: 'View attachment',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showImageDialog(String base64Image) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+          children: [
+            Center(
+              child: Container(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.9,
+                  maxHeight: MediaQuery.of(context).size.height * 0.8,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: _buildBase64Image(base64Image),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              right: 40,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () => Navigator.pop(context),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.black54,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBase64Image(String base64String) {
+    try {
+      if (base64String.startsWith('data:image')) {
+        final parts = base64String.split(',');
+        if (parts.length == 2) {
+          final bytes = base64Decode(parts[1]);
+          return Image.memory(
+            bytes,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                padding: const EdgeInsets.all(16),
+                color: Colors.grey.shade200,
+                child: const Center(
+                  child: Text('Error loading image'),
+                ),
+              );
+            },
+          );
+        }
+      }
+      // Try direct base64 decode if no data:image prefix
+      final bytes = base64Decode(base64String);
+      return Image.memory(
+        bytes,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.grey.shade200,
+            child: const Center(
+              child: Text('Error loading image'),
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        color: Colors.grey.shade200,
+        child: Center(
+          child: Text('Invalid image data: $e'),
+        ),
+      );
+    }
   }
 }

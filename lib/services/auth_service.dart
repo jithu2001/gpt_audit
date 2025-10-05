@@ -5,7 +5,7 @@ import '../models/auth_response.dart';
 import '../models/user.dart';
 
 class AuthService {
-  static const String _baseUrl = 'http://192.168.1.109:8080';
+  static const String _baseUrl = 'http://51.20.70.102';
   static const String _signInEndpoint = '/auth/signin';
   static const String _refreshEndpoint = '/auth/refresh';
   
@@ -78,7 +78,9 @@ class AuthService {
   }
   
   Future<void> signOut() async {
+    print('🚪 Signing out user: ${_currentUser?.email}');
     await _clearTokens();
+    print('✅ Sign out completed. isAuthenticated: $isAuthenticated');
   }
   
   Future<bool> loadStoredAuth() async {

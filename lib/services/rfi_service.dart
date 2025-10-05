@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class RFIService {
-  static const String _baseUrl = 'http://192.168.1.109:8080';
+  static const String _baseUrl = 'http://51.20.70.102';
   static const String _rfiEndpoint = '/api/projects';
 
   static RFIService? _instance;
@@ -43,32 +43,33 @@ class RFIService {
   }
 
   /// Add a new RFI item to a project
-  Future<bool> addRFIItem(int projectId, Map<String, dynamic> rfiItem) async {
+  Future<bool> createRFI(int projectId, String questionText) async {
     try {
-      print('➕ Adding RFI item to project $projectId');
-      
+      print('➕ Creating RFI for project $projectId');
+      print('📋 Question: $questionText');
+
       final headers = await AuthService.instance.getAuthHeaders();
       final response = await http.post(
-        Uri.parse('$_baseUrl$_rfiEndpoint/$projectId/rfi'),
+        Uri.parse('$_baseUrl$_rfiEndpoint/$projectId/rfis'),
         headers: headers,
         body: jsonEncode({
-          'question_text': rfiItem['question_text'],
-          'status': rfiItem['status'] ?? 'pending',
+          'question_text': questionText,
         }),
       );
 
-      print('📡 Add RFI response status: ${response.statusCode}');
-      print('📄 Add RFI response body: ${response.body}');
+      print('📡 Create RFI response status: ${response.statusCode}');
+      print('📄 Create RFI response body: ${response.body}');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        print('✅ RFI item added successfully');
+        print('✅ RFI created successfully');
         return true;
       } else {
-        print('❌ Failed to add RFI item: ${response.statusCode}');
+        print('❌ Failed to create RFI: ${response.statusCode}');
+        print('📄 Response body: ${response.body}');
         return false;
       }
     } catch (e) {
-      print('💥 Error adding RFI item: $e');
+      print('💥 Error creating RFI: $e');
       return false;
     }
   }

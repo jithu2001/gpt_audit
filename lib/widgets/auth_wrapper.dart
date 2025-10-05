@@ -29,17 +29,23 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _onAuthStateChanged() async {
-    // Add a small delay to ensure sign-out has completed
-    await Future.delayed(const Duration(milliseconds: 100));
+    print('🔄 Auth state changed callback START');
     if (mounted) {
+      final isAuth = AuthService.instance.isAuthenticated;
+      print('🔄 Auth state changed. isAuthenticated: $isAuth, current _isAuthenticated: $_isAuthenticated');
       setState(() {
-        _isAuthenticated = AuthService.instance.isAuthenticated;
+        _isAuthenticated = isAuth;
       });
+      print('🔄 setState completed. _isAuthenticated is now: $_isAuthenticated');
+    } else {
+      print('🔄 Widget not mounted, cannot update state');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    print('🔧 AuthWrapper build: _isAuthenticated=$_isAuthenticated, _isLoading=$_isLoading');
+
     if (_isLoading) {
       return const Scaffold(
         body: Center(
@@ -49,8 +55,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
 
     if (_isAuthenticated) {
+      print('🔧 AuthWrapper: Building HomeDashboard with onSignOut callback');
       return HomeDashboard(onSignOut: _onAuthStateChanged);
     } else {
+      print('🔧 AuthWrapper: Building AuthPage');
       return AuthPage(onAuthSuccess: _onAuthStateChanged);
     }
   }

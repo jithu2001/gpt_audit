@@ -4,7 +4,7 @@ import '../models/user.dart';
 import 'auth_service.dart';
 
 class UserService {
-  static const String _baseUrl = 'http://192.168.1.109:8080';
+  static const String _baseUrl = 'http://51.20.70.102';
   static const String _usersEndpoint = '/api/users';
 
   static UserService? _instance;

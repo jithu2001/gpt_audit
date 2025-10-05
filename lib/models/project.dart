@@ -77,31 +77,53 @@ class Specification {
   final int? id;
   final int versionNo;
   final String colour;
+  final String? colourAttachment;
   final String ironmongery;
-  final double uValue;
-  final double gValue;
+  final String? ironmongeryAttachment;
+  final String uValue;
+  final String? uValueAttachment;
+  final String gValue;
+  final String? gValueAttachment;
   final String vents;
+  final String? ventsAttachment;
   final String acoustics;
+  final String? acousticsAttachment;
   final String sbd;
+  final String? sbdAttachment;
   final String pas24;
+  final String? pas24Attachment;
   final String restrictors;
+  final String? restrictorsAttachment;
   final String specialComments;
   final String? attachmentUrl;
+  final String? createdBy;
+  final DateTime? createdAt;
 
   Specification({
     this.id,
     required this.versionNo,
     required this.colour,
+    this.colourAttachment,
     required this.ironmongery,
+    this.ironmongeryAttachment,
     required this.uValue,
+    this.uValueAttachment,
     required this.gValue,
+    this.gValueAttachment,
     required this.vents,
+    this.ventsAttachment,
     required this.acoustics,
+    this.acousticsAttachment,
     required this.sbd,
+    this.sbdAttachment,
     required this.pas24,
+    this.pas24Attachment,
     required this.restrictors,
+    this.restrictorsAttachment,
     required this.specialComments,
     this.attachmentUrl,
+    this.createdBy,
+    this.createdAt,
   });
 
   factory Specification.fromJson(Map<String, dynamic> json) {
@@ -109,22 +131,32 @@ class Specification {
       id: json['specification_id'] ?? json['id'],
       versionNo: json['version_no'] ?? 1,
       colour: json['colour'] ?? '',
+      colourAttachment: json['colour_attachment'],
       ironmongery: json['ironmongery'] ?? '',
-      uValue: (json['u_value'] ?? 0.0).toDouble(),
-      gValue: (json['g_value'] ?? 0.0).toDouble(),
+      ironmongeryAttachment: json['ironmongery_attachment'],
+      uValue: json['u_value']?.toString() ?? '',
+      uValueAttachment: json['u_value_attachment'],
+      gValue: json['g_value']?.toString() ?? '',
+      gValueAttachment: json['g_value_attachment'],
       vents: json['vents'] ?? '',
+      ventsAttachment: json['vents_attachment'],
       acoustics: json['acoustics'] ?? '',
+      acousticsAttachment: json['acoustics_attachment'],
       sbd: json['sbd']?.toString() ?? '',
+      sbdAttachment: json['sbd_attachment'],
       pas24: json['pas24']?.toString() ?? '',
+      pas24Attachment: json['pas24_attachment'],
       restrictors: json['restrictors']?.toString() ?? '',
+      restrictorsAttachment: json['restrictors_attachment'],
       specialComments: json['special_comments'] ?? '',
       attachmentUrl: json['attachment_url'],
+      createdBy: json['creator']?['full_name'] ?? json['created_by']?.toString(),
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
+    final json = <String, dynamic>{
       'version_no': versionNo,
       'colour': colour,
       'ironmongery': ironmongery,
@@ -136,8 +168,21 @@ class Specification {
       'pas24': pas24,
       'restrictors': restrictors,
       'special_comments': specialComments,
-      'attachment_url': attachmentUrl,
     };
+
+    if (id != null) json['id'] = id;
+    if (colourAttachment != null) json['colour_attachment'] = colourAttachment;
+    if (ironmongeryAttachment != null) json['ironmongery_attachment'] = ironmongeryAttachment;
+    if (uValueAttachment != null) json['u_value_attachment'] = uValueAttachment;
+    if (gValueAttachment != null) json['g_value_attachment'] = gValueAttachment;
+    if (ventsAttachment != null) json['vents_attachment'] = ventsAttachment;
+    if (acousticsAttachment != null) json['acoustics_attachment'] = acousticsAttachment;
+    if (sbdAttachment != null) json['sbd_attachment'] = sbdAttachment;
+    if (pas24Attachment != null) json['pas24_attachment'] = pas24Attachment;
+    if (restrictorsAttachment != null) json['restrictors_attachment'] = restrictorsAttachment;
+    if (attachmentUrl != null) json['attachment_url'] = attachmentUrl;
+
+    return json;
   }
 }
 
